@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>วันนี้กินอะไรดี? สุ่มอาหารตามงบ</title>
+<style>
+:root{--bg:#fff8ee;--card:#fff;--ink:#2b2118;--mute:#7a6a5a;--pri:#e8590c;--pri2:#ffe8d6;--line:#f0dfcc;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1713;--card:#2a221b;--ink:#f6ebdd;--mute:#b8a692;--pri:#ff8a3d;--pri2:#43301f;--line:#3d3126}}
+:root[data-theme="dark"]{--bg:#1c1713;--card:#2a221b;--ink:#f6ebdd;--mute:#b8a692;--pri:#ff8a3d;--pri2:#43301f;--line:#3d3126}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans Thai","Sarabun",system-ui,sans-serif;line-height:1.5}
+main{max-width:480px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.5rem;margin:0 0 2px}
+.sub{color:var(--mute);margin:0 0 18px;font-size:.95rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px}
+label{font-weight:600;display:flex;justify-content:space-between;align-items:baseline}
+.bud{color:var(--pri);font-size:1.6rem;font-weight:700}
+input[type=range]{width:100%;accent-color:var(--pri);margin:10px 0 4px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:6px 12px;border-radius:99px;font:inherit;font-size:.9rem;cursor:pointer}
+.chip.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.count{color:var(--mute);font-size:.85rem;margin-top:8px}
+.result{text-align:center;padding:26px 16px;background:var(--pri2);border-color:transparent}
+.emoji{font-size:4rem;line-height:1.1}
+.name{font-size:1.5rem;font-weight:700;margin:6px 0 2px;min-height:2.2rem}
+.price{color:var(--pri);font-weight:700;font-size:1.15rem}
+.tag{color:var(--mute);font-size:.85rem}
+.spin .name,.spin .emoji{opacity:.55}
+button.go{width:100%;border:0;background:var(--pri);color:#fff;font:inherit;font-weight:700;font-size:1.15rem;padding:14px;border-radius:14px;cursor:pointer;margin-top:4px}
+button.go:disabled{opacity:.5}
+button.go:active{transform:scale(.98)}
+h2{font-size:1rem;margin:0 0 8px}
+.hist{display:flex;flex-wrap:wrap;gap:6px}
+.hist span{background:var(--pri2);border-radius:99px;padding:3px 10px;font-size:.85rem}
+.empty{color:var(--mute);font-size:.9rem}
+ul.ls{list-style:none;padding:0;margin:8px 0 4px;text-align:left}
+ul.ls li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line)}
+</style>
+</head>
+<body>
+<main>
+  <h1>🍚 วันนี้กินอะไรดี?</h1>
+  <p class="sub">เลือกงบ แล้วให้เราสุ่มมื้อเที่ยงให้</p>
+
+  <div class="card">
+    <label for="b">งบมื้อนี้ <span class="bud"><span id="bv">50</span> ฿</span></label>
+    <input type="range" id="b" min="20" max="1500" step="10" value="50">
+    <div class="chips" id="cats"></div>
+    <div class="count" style="margin-top:12px">จำนวนเมนู</div>
+    <div class="chips" id="nums"></div>
+    <div class="count" id="cnt"></div>
+  </div>
+
+  <div class="card result" id="res">
+    <div class="emoji" id="em">🎲</div>
+    <div class="name" id="nm">กดปุ่มเพื่อสุ่มเลย!</div>
+    <ul class="ls" id="ls"></ul>
+    <div class="price" id="pr"></div>
+    <div class="tag" id="tg"></div>
+  </div>
+
+  <button class="go" id="go">🎲 สุ่มเลย!</button>
+
+  <div class="card" style="margin-top:14px">
+    <h2>เมนูที่สุ่มได้ล่าสุด</h2>
+    <div class="hist" id="hist"><span class="empty" style="background:none;padding:0">ยังไม่มี</span></div>
+  </div>
+</main>
+
+<script>
+const FOODS=[
+["กระเพราหมูสับไข่ดาว",50,"🍳","จานเดียว"],["กระเพราไก่ราดข้าว",45,"🍛","จานเดียว"],
+["ข้าวไข่เจียวหมูสับ",40,"🍳","จานเดียว"],["ข้าวไข่เจียว",30,"🍳","จานเดียว"],
+["ข้าวผัดหมู",45,"🍚","จานเดียว"],["ข้าวคลุกกะปิ",55,"🍚","จานเดียว"],
+["ข้าวมันไก่",45,"🍗","จานเดียว"],["ข้าวหมูแดง",50,"🍖","จานเดียว"],
+["ข้าวขาหมู",55,"🍖","จานเดียว"],["ข้าวหน้าเป็ด",60,"🦆","จานเดียว"],
+["ข้าวหมูทอดกระเทียม",50,"🍛","จานเดียว"],["ข้าวราดแกงเขียวหวานไก่",45,"🍛","จานเดียว"],
+["ผัดซีอิ๊วหมู",50,"🍜","เส้น"],["ผัดไทยกุ้งสด",60,"🍜","เส้น"],["ผัดขี้เมาหมู",55,"🌶️","เส้น"],
+["ก๋วยเตี๋ยวเรือ",45,"🍲","ก๋วยเตี๋ยว"],["ก๋วยเตี๋ยวต้มยำหมู",45,"🍲","ก๋วยเตี๋ยว"],
+["บะหมี่เกี๊ยวหมูแดง",50,"🍜","ก๋วยเตี๋ยว"],["สุกี้น้ำหมู",50,"🥘","ก๋วยเตี๋ยว"],
+["ข้าวต้มหมู",40,"🥣","ก๋วยเตี๋ยว"],["โจ๊กหมูไข่",35,"🥣","ก๋วยเตี๋ยว"],
+["ส้มตำไทย + ข้าวเหนียว",40,"🥗","อีสาน"],["ส้มตำปู + ไก่ย่าง",75,"🥗","อีสาน"],
+["ลาบหมู + ข้าวเหนียว",50,"🌿","อีสาน"],["ตำซั่วเส้นเล็ก",45,"🥗","อีสาน"],["ยำวุ้นเส้น",60,"🥗","อีสาน"],
+["หมูปิ้ง 3 ไม้ + ข้าวเหนียว",35,"🍢","ปิ้งทอด"],["หมูปิ้ง 5 ไม้ + ข้าวเหนียว",55,"🍢","ปิ้งทอด"],
+["ไก่ทอด + ข้าวเหนียว",50,"🍗","ปิ้งทอด"],["ไก่ย่าง + ข้าวเหนียว",60,"🍗","ปิ้งทอด"],
+["คอหมูย่าง + ข้าวเหนียว",70,"🥩","ปิ้งทอด"],["ปลาทอด + ข้าวสวย",65,"🐟","ปิ้งทอด"],
+["สเต็กหมู + เฟรนช์ฟรายส์",90,"🥩","มื้อใหญ่"],["ต้มยำกุ้ง + ข้าวสวย",150,"🦐","มื้อใหญ่"],
+["ชุดอีสาน ส้มตำ+ไก่ย่าง+คอหมูย่าง",180,"🍗","มื้อใหญ่"],["หมูกระทะ (ต่อคน)",199,"🔥","มื้อใหญ่"],
+["ชาบู / สุกี้ บุฟเฟต์",249,"🍲","มื้อใหญ่"],["ปลากะพงทอดน้ำปลา + ข้าว",280,"🐟","มื้อใหญ่"],
+["กุ้งเผา + ส้มตำ + ข้าวเหนียว",350,"🦐","มื้อใหญ่"],["ปิ้งย่างบุฟเฟต์ พรีเมียม",499,"🥓","มื้อใหญ่"],
+["กระเพราหมูกรอบไข่ดาว",60,"🍳","จานเดียว"],["ข้าวผัดกุ้ง",60,"🍤","จานเดียว"],["ข้าวผัดปู",70,"🦀","จานเดียว"],["ข้าวผัดอเมริกัน",60,"🍳","จานเดียว"],
+["ข้าวหมูกรอบคั่วพริกเกลือ",55,"🥓","จานเดียว"],["ข้าวผัดพริกแกงหมู",50,"🌶️","จานเดียว"],["ข้าวไก่ผัดเม็ดมะม่วง",55,"🥜","จานเดียว"],
+["ข้าวหมูกระเทียมพริกไทย",50,"🧄","จานเดียว"],["ข้าวผัดน้ำพริกลงเรือ",60,"🍚","จานเดียว"],["ข้าวไข่ข้นกุ้ง",65,"🍤","จานเดียว"],
+["ข้าวไก่ย่างราดซอส",55,"🍗","จานเดียว"],["ข้าวผัดต้มยำทะเล",60,"🍚","จานเดียว"],["ข้าวไข่ยัดไส้",40,"🍳","จานเดียว"],["ข้าวหมูทอดน้ำปลา",50,"🍛","จานเดียว"],
+["ราดหน้าหมู",50,"🍜","เส้น"],["ผัดหมี่โคราช",45,"🍜","เส้น"],["กะเพราเส้นใหญ่",50,"🌿","เส้น"],["ผัดมาม่าใส่ไข่",40,"🍜","เส้น"],
+["สุกี้แห้งหมู",50,"🥘","เส้น"],["ก๋วยจั๊บน้ำข้น",45,"🍲","เส้น"],["ขนมจีนน้ำยา",40,"🍝","เส้น"],["ขนมจีนแกงเขียวหวาน",45,"🍝","เส้น"],
+["ผัดวุ้นเส้นใส่ไข่",45,"🍜","เส้น"],["หมี่กะทิ",40,"🍜","เส้น"],["ผัดไทยห่อไข่",55,"🍜","เส้น"],
+["เย็นตาโฟ",45,"🍲","ก๋วยเตี๋ยว"],["ก๋วยเตี๋ยวหมูตุ๋น",50,"🍲","ก๋วยเตี๋ยว"],["ก๋วยเตี๋ยวน้ำตกหมู",45,"🍲","ก๋วยเตี๋ยว"],
+["ข้าวต้มปลา",50,"🥣","ก๋วยเตี๋ยว"],["บะหมี่หมูกรอบ",55,"🍜","ก๋วยเตี๋ยว"],["ก๋วยเตี๋ยวเป็ดตุ๋น",55,"🦆","ก๋วยเตี๋ยว"],
+["เกาเหลาหมู",50,"🍲","ก๋วยเตี๋ยว"],["ก๋วยเตี๋ยวต้มยำน้ำข้น",50,"🍲","ก๋วยเตี๋ยว"],["ข้าวต้มกุ๊ย",60,"🥣","ก๋วยเตี๋ยว"],
+["ส้มตำปลาร้า + ข้าวเหนียว",40,"🥗","อีสาน"],["ส้มตำข้าวโพด",40,"🌽","อีสาน"],["น้ำตกหมู + ข้าวเหนียว",55,"🌿","อีสาน"],
+["ต้มแซ่บกระดูกอ่อน",70,"🍲","อีสาน"],["ไก่ย่าง + ส้มตำ",90,"🍗","อีสาน"],["ตำไทยไก่ทอด",65,"🥗","อีสาน"],["ยำแหนม",55,"🥗","อีสาน"],
+["ตำป่า + ข้าวเหนียว",45,"🥗","อีสาน"],["ตำมะม่วง",45,"🥭","อีสาน"],["คอหมูย่างน้ำจิ้มแจ่ว",60,"🥩","อีสาน"],
+["ไส้กรอกอีสาน + ข้าวเหนียว",35,"🌭","ปิ้งทอด"],["ปลาหมึกย่าง",50,"🦑","ปิ้งทอด"],["ไก่ทอดหาดใหญ่ + ข้าวเหนียว",55,"🍗","ปิ้งทอด"],
+["ปีกไก่ทอด 4 ชิ้น",45,"🍗","ปิ้งทอด"],["หมูทอด + ข้าวเหนียว",45,"🥓","ปิ้งทอด"],["ลูกชิ้นปิ้ง 10 ไม้",40,"🍢","ปิ้งทอด"],
+["ตับหมูปิ้ง + ข้าวเหนียว",35,"🍢","ปิ้งทอด"],["ปลาเผาเกลือ + ข้าวเหนียว",80,"🐟","ปิ้งทอด"],["ทอดมันปลากราย 5 ชิ้น",45,"🐟","ปิ้งทอด"],["ปอเปี๊ยะทอด",35,"🥟","ปิ้งทอด"],
+["แกงจืดเต้าหู้หมูสับ + ข้าว",40,"🍲","แกงต้ม"],["ต้มยำไก่ + ข้าว",50,"🍲","แกงต้ม"],["ต้มข่าไก่ + ข้าว",55,"🥥","แกงต้ม"],
+["ต้มจับฉ่าย + ข้าว",45,"🥬","แกงต้ม"],["แกงส้มชะอมไข่ + ข้าว",55,"🍲","แกงต้ม"],["แกงมัสมั่นไก่ + ข้าว",55,"🍛","แกงต้ม"],
+["พะแนงหมู + ข้าว",55,"🍛","แกงต้ม"],["แกงป่าหมู + ข้าว",55,"🌶️","แกงต้ม"],["ต้มโคล้งปลากรอบ + ข้าว",60,"🐟","แกงต้ม"],
+["แกงเทโพ + ข้าว",50,"🍲","แกงต้ม"],["ต้มส้มปลา + ข้าว",55,"🐟","แกงต้ม"],["แกงเขียวหวานเนื้อ + ข้าว",65,"🍛","แกงต้ม"],
+["ปลาหมึกผัดไข่เค็ม + ข้าว",120,"🦑","มื้อใหญ่"],["ผัดฉ่าทะเล + ข้าว",150,"🦐","มื้อใหญ่"],["ยำทะเลรวมมิตร",160,"🥗","มื้อใหญ่"],
+["ชุดไก่ย่าง ส้มตำ ข้าวเหนียว (ใหญ่)",160,"🍗","มื้อใหญ่"],["ปลานิลทอด + น้ำจิ้มซีฟู้ด",180,"🐟","มื้อใหญ่"],["ข้าวแช่ชุดโบราณ",180,"🍚","มื้อใหญ่"],
+["ปลาช่อนเผา + ส้มตำ",220,"🐟","มื้อใหญ่"],["เป็ดย่างครึ่งตัว",250,"🦆","มื้อใหญ่"],["ปูผัดผงกะหรี่ + ข้าว",280,"🦀","มื้อใหญ่"],["ตำถาดรวมมิตร",300,"🥗","มื้อใหญ่"],
+["ข้าวหน้าหมูทอดคัตสึด้ง",159,"🍱","ญี่ปุ่น"],["ราเมนทงคตสึ",189,"🍜","ญี่ปุ่น"],["อุด้งเทมปุระ",169,"🍜","ญี่ปุ่น"],["ข้าวแกงกะหรี่ญี่ปุ่น",149,"🍛","ญี่ปุ่น"],
+["ข้าวหน้าแซลมอนดิบ",220,"🍣","ญี่ปุ่น"],["ซูชิชุด 12 ชิ้น",299,"🍣","ญี่ปุ่น"],["ยากินิคุบุฟเฟต์",399,"🥩","ญี่ปุ่น"],
+["ข้าวหน้าปลาไหลอุนะด้ง",380,"🐟","ญี่ปุ่น"],["ซาชิมิรวมพรีเมียม",450,"🍣","ญี่ปุ่น"],["ชาบูเนื้อวากิว",590,"🥩","ญี่ปุ่น"],["ซูชิโอมากาเสะ",1500,"🍣","ญี่ปุ่น"],
+["คิมบับ",89,"🍙","เกาหลี"],["ต๊อกบกกี",99,"🌶️","เกาหลี"],["จาปาเกตตี (ราเมียนจาจังมยอน)",119,"🍜","เกาหลี"],["บิบิมบับ",149,"🍲","เกาหลี"],
+["ซุปกิมจิจิเก + ข้าว",159,"🍲","เกาหลี"],["บุลโกกิ + ข้าว",189,"🥩","เกาหลี"],["ไก่ทอดเกาหลี",199,"🍗","เกาหลี"],["หมูสามชั้นย่างซัมกยอบซัล",299,"🥓","เกาหลี"],
+["ปิ้งย่างเกาหลีบุฟเฟต์",459,"🔥","เกาหลี"],["เนื้อวากิวย่างสไตล์เกาหลี",890,"🥩","เกาหลี"],
+["คลับแซนด์วิช + เฟรนช์ฟรายส์",149,"🥪","ตะวันตก"],["ซีซาร์สลัดไก่ย่าง",179,"🥗","ตะวันตก"],["พาสต้าคาร์โบนาร่า",189,"🍝","ตะวันตก"],["ไข่เบเนดิกต์",199,"🍳","ตะวันตก"],
+["ลาซานญ่า",229,"🍝","ตะวันตก"],["ฟิชแอนด์ชิปส์",249,"🐟","ตะวันตก"],["เบอร์เกอร์วากิว + ฟรายส์",259,"🍔","ตะวันตก"],["พิซซ่าซีฟู้ดถาดใหญ่",299,"🍕","ตะวันตก"],
+["สเต็กริบอาย",590,"🥩","ตะวันตก"],["ซีฟู้ดแพลตเตอร์",790,"🦞","ตะวันตก"],["สเต็กเนื้อวากิว A5",1200,"🥩","ตะวันตก"],["ล็อบสเตอร์เทอร์มิดอร์",1300,"🦞","ตะวันตก"],
+["ข้าวผัดหยางโจว",99,"🍚","จีน"],["เสี่ยวหลงเปา 6 ลูก",129,"🥟","จีน"],["ก๋วยเตี๋ยวเนื้อตุ๋นไต้หวัน",139,"🍜","จีน"],["ติ่มซำชุดใหญ่",249,"🥟","จีน"],
+["หม้อไฟหม่าล่า",299,"🌶️","จีน"],["เป็ดปักกิ่ง",890,"🦆","จีน"],["ซุปหูฉลามเต็มถ้วย + ติ่มซำ",990,"🥣","จีน"],
+["เคบับไก่ + ข้าว",129,"🥙","อื่นๆ"],["เฝอเวียดนาม",129,"🍜","อื่นๆ"],["ทาโก้ 3 ชิ้น",159,"🌮","อื่นๆ"],["ข้าวหมกไก่บริยานี",189,"🍛","อื่นๆ"]
+];
+const CATS=["ทั้งหมด","จานเดียว","เส้น","ก๋วยเตี๋ยว","อีสาน","ปิ้งทอด","แกงต้ม","มื้อใหญ่","ญี่ปุ่น","เกาหลี","ตะวันตก","จีน","อื่นๆ"];
+let cat="ทั้งหมด",busy=false,hist=[];
+const $=id=>document.getElementById(id);
+try{hist=JSON.parse(localStorage.getItem("lunchHist")||"[]")}catch(e){hist=[]}
+
+function pool(){const b=+$("b").value;return FOODS.filter(f=>f[1]<=b&&(cat==="ทั้งหมด"||f[3]===cat))}
+function upd(){
+  $("bv").textContent=$("b").value;
+  const n=pool().length;
+  $("cnt").textContent=n?`มี ${n} เมนูในงบนี้`:"ไม่มีเมนูในงบนี้ ลองเพิ่มงบหรือเปลี่ยนหมวดดูนะ";
+  $("go").disabled=!n;
+}
+let num=0;
+const NUMS=[["อัตโนมัติ",0],["1 เมนู",1],["2 เมนู",2],["3 เมนู",3],["4 เมนู",4]];
+function combo(){
+  const p=pool(),b=+$("b").value,max=num||4,res=[];
+  for(let t=0;t<80;t++){
+    const s=[...p].sort(()=>Math.random()-.5),r=[];let sum=0;
+    for(const f of s){if(r.length>=max)break;if(sum+f[1]<=b){r.push(f);sum+=f[1]}}
+    if(num&&r.length<num)continue;
+    if(r.length)res.push([r,sum]);
+  }
+  if(!res.length)return [p[Math.floor(Math.random()*p.length)]];
+  const top=Math.max(...res.map(x=>x[1])),ok=res.filter(x=>x[1]>=top*0.8);
+  return ok[Math.floor(Math.random()*ok.length)][0];
+}
+function show(r){
+  const sum=r.reduce((a,f)=>a+f[1],0),b=+$("b").value;
+  $("em").textContent=r.map(f=>f[2]).join(" ");
+  if(r.length===1){$("nm").textContent=r[0][0];$("ls").innerHTML="";$("tg").textContent="หมวด: "+r[0][3]}
+  else{$("nm").textContent="เซ็ต "+r.length+" เมนู";$("ls").innerHTML=r.map(f=>`<li><span>${f[2]} ${f[0]}</span><b>${f[1]}฿</b></li>`).join("");$("tg").textContent=""}
+  $("pr").textContent="รวม "+sum+" บาท"+(b>sum?" (เหลือ "+(b-sum)+")":"");
+}
+function renderHist(){
+  const h=$("hist");
+  h.innerHTML=hist.length?hist.map(x=>`<span>${x}</span>`).join(""):'<span class="empty" style="background:none;padding:0">ยังไม่มี</span>';
+}
+$("cats").innerHTML=CATS.map(c=>`<button class="chip${c===cat?" on":""}" data-c="${c}">${c}</button>`).join("");
+$("cats").onclick=e=>{
+  const c=e.target.dataset.c;if(!c)return;cat=c;
+  document.querySelectorAll("#cats .chip").forEach(x=>x.classList.toggle("on",x.dataset.c===c));upd();
+};
+$("nums").innerHTML=NUMS.map(n=>`<button class="chip${n[1]===num?" on":""}" data-n="${n[1]}">${n[0]}</button>`).join("");
+$("nums").onclick=e=>{
+  const n=e.target.dataset.n;if(n===undefined)return;num=+n;
+  document.querySelectorAll("#nums .chip").forEach(x=>x.classList.toggle("on",+x.dataset.n===num));
+};
+$("b").oninput=upd;
+$("go").onclick=()=>{
+  if(busy)return;const p=pool();if(!p.length)return;
+  busy=true;$("go").disabled=true;$("res").classList.add("spin");
+  let i=0;const total=14;
+  const pick=combo();
+  const t=setInterval(()=>{
+    i++;
+    if(i>=total){
+      clearInterval(t);$("res").classList.remove("spin");show(pick);
+      hist=[pick.map(f=>f[0]).join(" + ")+" ("+pick.reduce((a,f)=>a+f[1],0)+"฿)",...hist].slice(0,6);
+      try{localStorage.setItem("lunchHist",JSON.stringify(hist))}catch(e){}
+      renderHist();busy=false;$("go").disabled=false;$("go").textContent="🎲 สุ่มใหม่";
+    }else show(combo());
+  },60+i*12);
+};
+upd();renderHist();
+</script>
+</body>
+</html>
